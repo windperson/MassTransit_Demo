@@ -135,15 +135,12 @@ namespace MassiveTransitDemo
 
         private static void ConfigHost2DynamicEndpoint1(IReceiveEndpointConfigurator configurator)
         {
-            configurator.Consumer<MyConsumer>(() => { return new MyConsumer("host2", "001"); });
+            configurator.Consumer<MyConsumer>(() => new MyConsumer("host2", "001"));
         }
 
         private static void ConfigureHost1Endpoint(IReceiveEndpointConfigurator configurator)
         {
-            configurator.Consumer<MyConsumer>(() =>
-            {
-                return new MyConsumer("host1", "000");
-            });
+            configurator.Consumer<MyConsumer>(() => new MyConsumer("host1", "000"));
         }
     }
 
