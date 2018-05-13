@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
-using GreenPipes;
 using MassTransit;
 using MassTransit.Transports.InMemory;
-using MassTransit.Transports.InMemory.Configuration;
 
 namespace MassiveTransitDemo
 {
@@ -20,6 +18,7 @@ namespace MassiveTransitDemo
 
                 sbc.ReceiveEndpoint("test_queue3", ConfigureHost1Endpoint);
 
+                sbc.UseInMemoryScheduler();
             });
 
             var busControl2 = Bus.Factory.CreateUsingInMemory(configurator => { ramHost2 = configurator.Host; });
@@ -30,7 +29,8 @@ namespace MassiveTransitDemo
             HostReceiveEndpointHandle host1ReceiveEndpoint1 = null,
                 host1ReceiveEndpoint2 = null,
                 host2ReceiveEndpoint1 = null,
-                host2ReceiveEndpoint2 = null;
+                host2ReceiveEndpoint2 = null,
+                host1QuartzReceiveEndPoint = null;
 
             if (ramHost1 != null)
                 if (ramHost1 is IInMemoryHost host)
@@ -46,7 +46,6 @@ namespace MassiveTransitDemo
                                     $"Dynamic Endpoint2 @ Host1 Received: \"{context.Message.Text}!\"");
                             });
                         });
-
                 }
 
             if (ramHost2 != null)
@@ -66,6 +65,9 @@ namespace MassiveTransitDemo
 
 
             var endpoint1_1 = await busControl1.GetSendEndpoint(new Uri("loopback://localhost1/test_queue1"));
+
+            var scheduledEndpoint = await busControl1.GetSendEndpoint(new Uri("loopback://localhost1/quartz"));
+
             var endpoint1_2 = await busControl1.GetSendEndpoint(new Uri("loopback://localhost1/test_queue2"));
 
             var endpoint2_1 = await busControl2.GetSendEndpoint(new Uri("loopback://localhost2/test_queue1"));
@@ -75,6 +77,8 @@ namespace MassiveTransitDemo
                 Task.Run(async () =>
                 {
                     await endpoint1_1.Send<YourMessage>(new YourMessage { Text = "Hello MassiveTransit" });
+                    await scheduledEndpoint.ScheduleSend(new Uri("loopback://localhost1/test_queue1"), new TimeSpan(0, 0, 10),
+                        new YourMessage {Text = "send schedulted after 10 secs"});
                     await endpoint1_1.Send<YourMessage>(new YourMessage { Text = "Send again" });
                 }),
 
@@ -110,7 +114,7 @@ namespace MassiveTransitDemo
                     })
             );
 
-            Thread.Sleep(new TimeSpan(0, 0, 1));
+            Thread.Sleep(new TimeSpan(0, 0, 15));
 
             await host1ReceiveEndpoint1?.StopAsync();
             await host1ReceiveEndpoint2?.StopAsync();
